@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#F6F7F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12171D" media="(prefers-color-scheme: dark)">
+<title>原始文件</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* 原始文件庫:研究庫的同一套色彩。藍 = 可以點,琥珀 = 新公布,其餘中性;文件本身才是主角 */
+:root{
+  --paper:#F6F7F5; --panel:#ECEFEA; --hover:#E4E8E2; --ink:#1C2530; --ink-2:#465262; --muted:#687381;
+  --rule:#DADFD8; --rule-2:#BFC6BD; --accent:#2D5FA8; --accent-ink:#244E8C; --warn:#A8731A; --warn-bg:#A8731A1F;
+  --sel:#2D5FA81C;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#12171D; --panel:#19212A; --hover:#202A35; --ink:#E5E9EE; --ink-2:#AFB8C3; --muted:#86909C;
+  --rule:#26303B; --rule-2:#3A4552; --accent:#86AEEA; --accent-ink:#A9C6F1; --warn:#E3B45E; --warn-bg:#E3B45E26; --sel:#86AEEA24;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px calc(48px + env(safe-area-inset-bottom))}
+
+/* 頂欄:標題 + 搜尋 + 市場切換,捲動時固定 */
+.top{position:sticky;top:0;z-index:5;background:var(--paper);padding:calc(12px + env(safe-area-inset-top)) 0 10px;border-bottom:1px solid var(--rule)}
+.top-row{display:flex;align-items:baseline;gap:10px}
+.top h1{font-size:20px;font-weight:700;margin:0;letter-spacing:.02em}
+.top .meta{font-size:12.5px;color:var(--muted)}
+.top .lib{margin-left:auto;font-size:13.5px;color:var(--accent-ink);font-weight:500;padding:6px 0}
+.tools{display:flex;gap:10px;margin-top:10px;align-items:center}
+.search{flex:1;min-width:0;position:relative}
+.search input{width:100%;height:38px;border:1px solid var(--rule-2);border-radius:8px;background:transparent;padding:0 12px 0 34px;font-size:15px}
+.search input::placeholder{color:var(--muted)}
+.search svg{position:absolute;left:10px;top:11px;width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2}
+.seg{display:flex;border:1px solid var(--rule-2);border-radius:8px;overflow:hidden;flex:none}
+.seg button{border:0;background:none;height:36px;padding:0 14px;font-size:14px;color:var(--ink-2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);font-weight:700}
+
+/* 區塊標題:小、安靜 */
+h2.sec{font-size:13px;font-weight:500;color:var(--muted);margin:26px 0 6px;letter-spacing:.02em}
+.empty{color:var(--muted);font-size:14px;padding:14px 0}
+
+/* 繼續閱讀:唯一帶進度線的地方 */
+.resume{display:grid;gap:8px}
+.rs{display:block;padding:12px 14px;background:var(--panel);border-radius:10px;position:relative;overflow:hidden}
+.rs .co{font-size:12.5px;color:var(--muted)}
+.rs .lb{font-weight:500;margin:1px 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs .pg{font-size:12.5px;color:var(--ink-2)}
+.rs .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent)}
+.rs:active{background:var(--hover)}
+
+/* 列表列:細線分隔,左對齊,點整列 */
+.list{border-top:1px solid var(--rule)}
+.row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--rule);min-height:56px;cursor:pointer}
+.row:active,.row:hover{background:var(--hover)}
+.row .code{flex:none;width:48px;font-size:13px;color:var(--muted);font-weight:500}
+.row .body{flex:1;min-width:0}
+.row .nm{font-weight:500;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .sub{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .side{flex:none;font-size:12.5px;color:var(--muted);text-align:right}
+.row .side.new{color:var(--warn);font-weight:500}
+.fmt{flex:none;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-2);border:1px solid var(--rule-2);border-radius:4px;padding:1px 5px}
+.chev{flex:none;width:8px;height:8px;border-right:1.5px solid var(--rule-2);border-top:1.5px solid var(--rule-2);transform:rotate(45deg);margin-right:4px}
+
+/* 公司頁 */
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent-ink);font-weight:500;padding:14px 0 4px;font-size:14px;cursor:pointer;background:none;border:0}
+.co-head h2{font-size:24px;margin:2px 0 0;font-weight:700}
+.co-head .code{font-size:14px;color:var(--muted);font-weight:500;margin-left:8px}
+.co-links{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 2px;font-size:13.5px}
+.co-links a{color:var(--accent-ink)}
+.co-note{font-size:13px;color:var(--ink-2);background:var(--warn-bg);border-radius:8px;padding:8px 12px;margin:10px 0 0}
+details.more{margin-top:18px}
+details.more summary{cursor:pointer;color:var(--accent-ink);font-size:14px;padding:8px 0;list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"+ "}
+details.more[open] summary::before{content:"\2212  "}
+.links li{margin:6px 0;font-size:14px;line-height:1.6}
+.links a{color:var(--accent-ink)}
+.links{padding-left:18px}
+.foot{margin-top:30px;font-size:12px;color:var(--muted);line-height:1.7}
+mark{background:var(--sel);color:inherit;border-radius:2px}
+@media (min-width:700px){.row .code{width:56px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-row"><h1>原始文件</h1><span class="meta" id="meta"></span><a class="lib" id="lib" href="/#/dash/files" hidden>研究庫</a></div>
+    <div class="tools">
+      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="搜尋公司、代號或文件" autocomplete="off" aria-label="搜尋公司、代號或文件"></label>
+      <div class="seg" role="group" aria-label="市場"><button type="button" data-m="台股">台股</button><button type="button" data-m="美股">美股</button></div>
+    </div>
+  </header>
+  <main id="main"><p class="empty">讀取文件清單…</p></main>
+</div>
+<script>
+(function () {
+  'use strict';
+  var IDX = null, market = '台股', query = '';
+  var ORDER = { '台股': ['財報', '年報', '法說會'], '美股': ['年報與季報', '財報新聞稿', '公開說明書', '6-K'] };
+  var GNAME = { '財報': '財務報告', '年報': '股東會年報', '法說會': '法說會簡報', '年報與季報': '年報與季報', '財報新聞稿': '財報新聞稿',
+    '公開說明書': '上市公開說明書', '6-K': '其他公告(6-K)', '季報': '年報與季報' };
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var encPath = function (p) { return p.split('/').map(encodeURIComponent).join('/'); };
+  var readerHref = function (d) { return 'reader.html?f=' + encodeURIComponent(d.path); };
+  var mb = function (b) { return b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB'; };
+  var today = new Date(), iso = function (d) { return d.toISOString().slice(0, 10); };
+  var daysAgo = function (s) { var t = Date.parse(s); return isNaN(t) ? 1e9 : (today - t) / 864e5; };
+  var short = function (s) { return s ? s.slice(5).replace('-', '/') : ''; };
+  // 美股文件名稱前面的申報日另外顯示,名稱只留內容
+  var nice = function (d) { return d.label.replace(/^\d{4}-\d{2}-\d{2}\s+/, ''); };
+  var tagOf = function (t) { return t === '季報' ? '年報與季報' : t; };
+
+  if (location.pathname.indexOf('/filings/') === 0) document.getElementById('lib').hidden = false;
+  market = store.get('fl.market', '台股');
+
+  function companies(m) { var g = IDX.markets.filter(function (x) { return x.name === m; })[0]; return g ? g.companies : []; }
+  function allDocs() {
+    var out = [];
+    IDX.markets.forEach(function (m) { m.companies.forEach(function (c) { c.docs.forEach(function (d) { out.push({ d: d, c: c, m: m.name }); }); }); });
+    return out;
+  }
+  function latest(c) { return c.docs.filter(function (d) { return !d.old; }).map(function (d) { return d.pub || ''; }).sort().pop() || ''; }
+
+  function docRow(d, co) {
+    var when = d.pub ? (d.t === '財報' || d.t === '年報' ? d.pub + ' 公布' : d.pub) : (d.date || '');
+    var sub = (co ? esc(co.key) + ' · ' : '') + esc(when) + ' · ' + mb(d.bytes || 0);
+    var fresh = daysAgo(d.pub) <= 14 && !d.old;
+    return '<a class="row" href="' + readerHref(d) + '"><div class="body"><div class="nm">' + (co ? esc(co.name) + ' ' : '') + esc(nice(d)) + '</div>' +
+      '<div class="sub">' + sub + (fresh ? ' · <span style="color:var(--warn);font-weight:500">新</span>' : '') + '</div></div>' +
+      '<span class="fmt">' + (d.fmt === 'pdf' ? 'PDF' : 'HTML') + '</span></a>';
+  }
+
+  function resumeHTML() {
+    var R = store.get('fl.recent', []).filter(function (r) { return r && r.p; }).slice(0, 3);
+    if (!R.length) return '';
+    return '<h2 class="sec">繼續閱讀</h2><div class="resume">' + R.map(function (r) {
+      var pos = r.n ? '第 ' + r.pg + ' / ' + r.n + ' 頁' : (r.fr != null ? '讀到 ' + Math.round(r.fr * 100) + '%' : '');
+      var fr = r.n ? r.pg / r.n : (r.fr || 0);
+      return '<a class="rs" href="reader.html?f=' + encodeURIComponent(r.p) + '"><div class="co">' + esc(r.c || '') + '</div><div class="lb">' + esc(r.l || r.p) + '</div>' +
+        '<div class="pg">' + esc(pos) + '</div><span class="bar" style="width:' + Math.max(2, Math.min(100, fr * 100)).toFixed(1) + '%"></span></a>';
+    }).join('') + '</div>';
+  }
+
+  function recentHTML() {
+    var R = allDocs().filter(function (x) { return !x.d.old && daysAgo(x.d.pub) <= 21; })
+      .sort(function (a, b) { return (b.d.pub || '').localeCompare(a.d.pub || ''); }).slice(0, 6);
+    if (!R.length) return '';
+    return '<h2 class="sec">最近 3 週公布</h2><div class="list">' + R.map(function (x) { return docRow(x.d, x.c); }).join('') + '</div>';
+  }
+
+  function coRow(c) {
+    var cnt = {};
+    c.docs.forEach(function (d) { if (!d.old) { var g = GNAME[tagOf(d.t)] || d.t; cnt[g] = (cnt[g] || 0) + 1; } });
+    var sum = Object.keys(cnt).map(function (k) { return k.replace('(6-K)', '') + ' ' + cnt[k]; }).join(' · ') || '這次沒有抓到文件';
+    var lt = latest(c), fresh = daysAgo(lt) <= 14;
+    return '<a class="row" href="#c=' + encodeURIComponent(c.key) + '"><span class="code">' + esc(c.key) + '</span>' +
+      '<div class="body"><div class="nm">' + esc(c.name) + '</div><div class="sub">' + esc(sum) + '</div></div>' +
+      '<span class="side' + (fresh ? ' new' : '') + '">' + esc(short(lt)) + '</span><span class="chev" aria-hidden="true"></span></a>';
+  }
+
+  function otherHTML() {
+    var L = (IDX.links || []).filter(function (x) { return x.market === market; }), E = IDX.etfs || [];
+    if (!L.length && !E.length) return '';
+    var li = L.map(function (x) {
+      return '<li><b>' + esc(x.key + ' ' + x.name) + '</b>:' + (x.links || []).map(function (l) { return '<a href="' + esc(l[1]) + '" target="_blank" rel="noopener">' + esc(l[0]) + '</a>'; }).join('、') + '</li>';
+    }).join('');
+    var ei = E.map(function (x) { return '<li><b>' + esc(x.ticker) + '</b> ' + esc(x.name) + (x.url ? ':<a href="' + esc(x.url) + '" target="_blank" rel="noopener">持股與基本資料</a>' : '') + '</li>'; }).join('');
+    return '<details class="more"><summary>其他公司與 ETF 的官方連結</summary>' +
+      (li ? '<p class="foot" style="margin:6px 0 0">比重較低的公司,只列官方網址,沒有下載。</p><ul class="links">' + li + '</ul>' : '') +
+      (ei ? '<p class="foot" style="margin:10px 0 0">ETF 本身不是公司,列發行商的持股明細頁。</p><ul class="links">' + ei + '</ul>' : '') + '</details>';
+  }
+
+  function homeHTML() {
+    var cs = companies(market);
+    return resumeHTML() + recentHTML() +
+      '<h2 class="sec">' + esc(market) + ' · ' + cs.length + ' 家公司</h2><div class="list">' + (cs.map(coRow).join('') || '<p class="empty">沒有資料。</p>') + '</div>' +
+      otherHTML() +
+      '<p class="foot">來源:台股為公開資訊觀測站(財報、股東會年報、法說會簡報);美股為 SEC EDGAR(10-K、10-Q、財報 8-K 附件、公開說明書、6-K)。' +
+      '檔案是官方原檔;美股另有手機閱讀版,只調整字級與表格版面,文字不動。每天 06:30、21:30 自動補新檔。</p>';
+  }
+
+  function companyHTML(key) {
+    var c = null, m = '';
+    IDX.markets.forEach(function (g) { g.companies.forEach(function (x) { if (x.key === key) { c = x; m = g.name; } }); });
+    if (!c) return '<button class="back" data-go="home">‹ 全部公司</button><p class="empty">找不到這家公司。</p>';
+    var groups = {}, olds = [];
+    c.docs.forEach(function (d) { if (d.old) { olds.push(d); return; } var g = tagOf(d.t); (groups[g] = groups[g] || []).push(d); });
+    var order = (ORDER[m] || []).concat(Object.keys(groups).filter(function (g) { return (ORDER[m] || []).indexOf(g) < 0; }));
+    var byPub = function (a, b) { return (b.pub || b.date || '').localeCompare(a.pub || a.date || '') || b.path.localeCompare(a.path); };
+    var body = order.filter(function (g) { return groups[g]; }).map(function (g) {
+      return '<h2 class="sec">' + esc(GNAME[g] || g) + '</h2><div class="list">' + groups[g].sort(byPub).map(function (d) { return docRow(d); }).join('') + '</div>';
+    }).join('');
+    var links = (c.ir ? '<a href="' + esc(c.ir) + '" target="_blank" rel="noopener">公司投資人網站</a>' : '') +
+      (c.links || []).map(function (l) { return '<a href="' + esc(l[1]) + '" target="_blank" rel="noopener">' + esc(l[0]) + '</a>'; }).join('');
+    var note = c.no_er ? '<p class="co-note">這家公司近一年沒有把財報新聞稿送 SEC,財報信與簡報在公司投資人網站。</p>' : '';
+    if (c.error) note += '<p class="co-note">上次抓取有問題:' + esc(c.error) + '</p>';
+    var old = olds.length ? '<details class="more"><summary>較早下載的檔(' + olds.length + ')</summary><div class="list">' + olds.sort(byPub).map(function (d) { return docRow(d); }).join('') + '</div></details>' : '';
+    return '<button class="back" data-go="home">‹ 全部公司</button><div class="co-head"><h2>' + esc(c.name) + '<span class="code">' + esc(c.key) + '</span></h2>' +
+      '<div class="co-links">' + links + '</div>' + note + '</div>' + (body || '<p class="empty">這次沒有抓到文件。</p>') + old;
+  }
+
+  function searchHTML(q) {
+    var t = q.toLowerCase(), hit = function (s) { return String(s || '').toLowerCase().indexOf(t) >= 0; };
+    var cos = [], docs = [];
+    IDX.markets.forEach(function (g) {
+      g.companies.forEach(function (c) {
+        if (hit(c.key) || hit(c.name) || (c.tickers || []).some(hit)) cos.push(c);
+        c.docs.forEach(function (d) { if (hit(d.label) || hit(d.t) || hit(GNAME[tagOf(d.t)])) docs.push({ d: d, c: c }); });
+      });
+    });
+    var mk = function (s) { var i = s.toLowerCase().indexOf(t); return i < 0 ? esc(s) : esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + q.length)) + '</mark>' + esc(s.slice(i + q.length)); };
+    return (cos.length ? '<h2 class="sec">公司</h2><div class="list">' + cos.map(coRow).join('') + '</div>' : '') +
+      (docs.length ? '<h2 class="sec">文件(' + docs.length + ')</h2><div class="list">' + docs.slice(0, 80).map(function (x) { return docRow(x.d, x.c); }).join('') + '</div>' : '') +
+      (!cos.length && !docs.length ? '<p class="empty">找不到「' + esc(q) + '」。可以搜公司名稱、代號,或文件名稱(例如 10-K、年報、法說)。</p>' : '');
+  }
+
+  function paint() {
+    var h = location.hash, m = h.match(/^#c=(.+)$/), main = document.getElementById('main');
+    document.querySelectorAll('.seg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.m === market)); });
+    if (query) main.innerHTML = searchHTML(query);
+    else if (m) { main.innerHTML = companyHTML(decodeURIComponent(m[1])); window.scrollTo(0, 0); }
+    else main.innerHTML = homeHTML();
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.seg button');
+    if (b) { market = b.dataset.m; store.set('fl.market', market); if (location.hash) location.hash = ''; else paint(); return; }
+    var g = e.target.closest('[data-go="home"]');
+    if (g) { if (history.length > 1 && /^#c=/.test(location.hash)) history.back(); else location.hash = ''; }
+  });
+  var qi = document.getElementById('q'), qt = 0;
+  qi.addEventListener('input', function () { clearTimeout(qt); qt = setTimeout(function () { query = qi.value.trim(); paint(); }, 120); });
+  window.addEventListener('hashchange', function () {
+    var m = location.hash.match(/^#c=(.+)$/);
+    if (m && IDX) IDX.markets.forEach(function (g) { g.companies.forEach(function (c) { if (c.key === decodeURIComponent(m[1])) market = g.name; }); });
+    paint();
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted && IDX) paint(); });   // 從閱讀器返回時更新「繼續閱讀」
+
+  fetch('index.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+    IDX = d;
+    var n = 0, b = 0;
+    allDocs().forEach(function (x) { n++; b += x.d.bytes || 0; });
+    document.getElementById('meta').textContent = '更新 ' + short(d.updated.slice(0, 10)) + ' ' + d.updated.slice(11) + ' · ' + n + ' 份';
+    var m = location.hash.match(/^#c=(.+)$/);
+    if (m) d.markets.forEach(function (g) { g.companies.forEach(function (c) { if (c.key === decodeURIComponent(m[1])) market = g.name; }); });
+    paint();
+  }).catch(function (e) {
+    document.getElementById('main').innerHTML = '<p class="empty">讀不到文件清單(' + esc(e.message) + ')。如果是從研究庫打開,請確認筆電開著、Tailscale 已連線。</p>';
+  });
+})();
+</script>
+</body>
+</html>

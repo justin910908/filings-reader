@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#F6F7F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12171D" media="(prefers-color-scheme: dark)">
+<title>閱讀</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* 閱讀器:文件是白紙,其餘(上下工具列、背景)跟著深淺色。工具列放在拇指搆得到的底部 */
+:root{
+  --paper:#F6F7F5; --panel:#ECEFEA; --hover:#E4E8E2; --ink:#1C2530; --ink-2:#465262; --muted:#687381;
+  --rule:#DADFD8; --rule-2:#BFC6BD; --accent:#2D5FA8; --accent-ink:#244E8C; --warn:#A8731A; --desk:#E3E6E1;
+  --bar:rgba(246,247,245,.94); --scrim:rgba(28,37,48,.45); --sel:#2D5FA81C;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#12171D; --panel:#19212A; --hover:#202A35; --ink:#E5E9EE; --ink-2:#AFB8C3; --muted:#86909C;
+  --rule:#26303B; --rule-2:#3A4552; --accent:#86AEEA; --accent-ink:#A9C6F1; --warn:#E3B45E; --desk:#0C1015;
+  --bar:rgba(18,23,29,.94); --scrim:rgba(0,0,0,.55); --sel:#86AEEA24;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--desk);color:var(--ink);font:15px/1.5 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+button,input{font:inherit;color:inherit}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* 上方工具列:返回、文件名稱、更多 */
+.bar{position:fixed;left:0;right:0;z-index:20;background:var(--bar);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  transition:transform .22s ease}
+.bar.top{top:0;height:calc(52px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 6px 0;display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--rule)}
+.bar.bot{bottom:0;height:calc(58px + env(safe-area-inset-bottom));padding:0 8px env(safe-area-inset-bottom);display:flex;align-items:center;justify-content:space-between;gap:4px;border-top:1px solid var(--rule)}
+body.hide .bar.top{transform:translateY(-100%)}
+body.hide .bar.bot{transform:translateY(100%)}
+@media (prefers-reduced-motion:reduce){.bar{transition:none}}
+.ib{flex:none;width:44px;height:44px;display:grid;place-items:center;border:0;background:none;border-radius:10px;cursor:pointer;color:var(--ink)}
+.ib:active{background:var(--hover)}
+.ib svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ttl{flex:1;min-width:0;line-height:1.25;padding:0 2px}
+.ttl b{display:block;font-size:12.5px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ttl span{display:block;font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.load{position:absolute;left:0;bottom:-1px;height:2px;background:var(--accent);width:0;transition:width .2s}
+
+/* 下方工具列 */
+.tb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:56px;height:50px;border:0;background:none;border-radius:10px;cursor:pointer;font-size:11.5px;color:var(--ink-2)}
+.tb svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tb:active{background:var(--hover)}
+.tb[disabled]{opacity:.35}
+.pos{flex:1;min-width:0;height:50px;border:0;background:none;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pos b{font-size:16px;font-weight:700;letter-spacing:.01em}
+.pos small{font-size:11.5px;color:var(--muted)}
+.pos:active{background:var(--hover)}
+.zm{display:flex;border:1px solid var(--rule-2);border-radius:10px;overflow:hidden;flex:none}
+.zm button{width:44px;height:40px;border:0;background:none;font-size:19px;cursor:pointer;color:var(--ink)}
+.zm button+button{border-left:1px solid var(--rule-2)}
+.zm button:active{background:var(--hover)}
+
+/* PDF 頁面:白紙、細陰影,置中;放大時可左右捲 */
+#pages{padding:calc(60px + env(safe-area-inset-top)) 8px calc(76px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px;touch-action:pan-x pan-y;transform-origin:0 0}
+.pg{position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18);flex:none}
+.pg canvas{position:absolute;inset:0;width:100%;height:100%}
+.pg .no{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#9AA3AD;font-size:13px}
+.pg.flash{box-shadow:0 0 0 3px var(--warn)}
+/* HTML(SEC)文件:整頁 iframe,工具列浮在上面 */
+#frame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+
+/* 底部抽屜:目錄、搜尋、跳頁、更多 */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--paper);border-radius:16px 16px 0 0;max-height:78vh;display:flex;flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -6px 24px rgba(0,0,0,.18)}
+@media (min-width:760px){.sheet{left:50%;width:640px;transform:translateX(-50%)}}
+.sh-head{display:flex;align-items:center;padding:10px 8px 6px 18px;gap:8px}
+.sh-head b{flex:1;font-size:16px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--rule-2);margin:8px auto 0}
+.sh-body{overflow:auto;padding:0 18px 18px;-webkit-overflow-scrolling:touch}
+.sh-body .note{font-size:13px;color:var(--muted);margin:6px 0 10px;line-height:1.6}
+.toc a,.res a{display:block;padding:11px 2px;border-bottom:1px solid var(--rule);color:var(--ink);text-decoration:none;line-height:1.45;cursor:pointer}
+.toc a:active,.res a:active{background:var(--hover)}
+.toc a .p{float:right;color:var(--muted);font-size:13px;margin-left:10px}
+.toc .l2{padding-left:16px;font-size:14px}.toc .l3{padding-left:30px;font-size:13.5px;color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+.chip{border:1px solid var(--rule-2);background:none;border-radius:999px;padding:7px 13px;font-size:14px;cursor:pointer}
+.chip:active,.chip.busy{background:var(--hover)}
+.chip.miss{opacity:.45}
+.find{display:flex;gap:8px;margin:2px 0 8px}
+.find input{flex:1;min-width:0;height:42px;border:1px solid var(--rule-2);border-radius:10px;background:transparent;padding:0 12px;font-size:16px}
+.find button,.go button{height:42px;padding:0 16px;border:0;border-radius:10px;background:var(--ink);color:var(--paper);font-weight:700;cursor:pointer}
+.res a small{display:block;font-size:12.5px;color:var(--muted)}
+.res a span{font-size:14px}
+.res mark{background:#F4D58D;color:#1C2530;border-radius:2px}
+.go{display:flex;gap:8px;align-items:center;margin:6px 0 12px}
+.go input{width:110px;height:42px;border:1px solid var(--rule-2);border-radius:10px;background:transparent;padding:0 12px;font-size:18px;text-align:center}
+.menu a,.menu button{display:flex;align-items:center;width:100%;padding:14px 2px;border:0;border-bottom:1px solid var(--rule);background:none;color:var(--ink);text-decoration:none;font-size:15px;cursor:pointer;text-align:left}
+.menu small{display:block;color:var(--muted);font-size:12.5px}
+.err{max-width:560px;margin:calc(90px + env(safe-area-inset-top)) auto 0;padding:0 20px;line-height:1.7}
+.err h1{font-size:18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header class="bar top" id="top">
+  <button class="ib" id="back" aria-label="返回"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <div class="ttl"><b id="t-co"></b><span id="t-doc">讀取中…</span></div>
+  <button class="ib" id="b-more" aria-label="更多選項" aria-haspopup="dialog"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
+  <span class="load" id="load"></span>
+</header>
+<main id="view"></main>
+<footer class="bar bot" id="bot">
+  <button class="tb" id="b-toc"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>目錄</button>
+  <button class="tb" id="b-find"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>搜尋</button>
+  <button class="pos" id="b-pos" aria-label="目前位置,點一下跳頁"><b id="pos-v">—</b><small id="pos-s"></small></button>
+  <div class="zm"><button id="b-out" aria-label="縮小">&minus;</button><button id="b-in" aria-label="放大">+</button></div>
+</footer>
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-title" hidden>
+  <div class="grip" aria-hidden="true"></div>
+  <div class="sh-head"><b id="sh-title"></b><button class="ib" id="sh-x" aria-label="關閉"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="sh-body" id="sh-body"></div>
+</section>
+<p class="sr" aria-live="polite" id="live"></p>
+<script>
+(function () {
+  'use strict';
+  var PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/';
+  var Q = new URLSearchParams(location.search), PATH = Q.get('f') || '';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var encPath = function (p) { return p.split('/').map(encodeURIComponent).join('/'); };
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  var META = { path: PATH, label: PATH.split('/').pop().replace(/\.[^.]+$/, ''), co: null, t: '', src: '', reader: null };
+  var MODE = /\.pdf$/i.test(PATH) ? 'pdf' : 'html';
+  var say = function (s) { $('live').textContent = s; };
+
+  /* ── 外框:返回、抽屜、工具列自動隱藏 ── */
+  $('back').onclick = function () {
+    var same = false;
+    try { same = document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (same && history.length > 1) history.back();
+    else location.href = 'index.html' + (META.co ? '#c=' + encodeURIComponent(META.co.key) : '');
+  };
+  var lastFocus = null;
+  function openSheet(title, html, after) {
+    lastFocus = document.activeElement;
+    $('sh-title').textContent = title; $('sh-body').innerHTML = html;
+    $('sheet').hidden = false; $('scrim').hidden = false;
+    document.body.classList.remove('hide');
+    if (after) after($('sh-body')); else $('sh-x').focus();
+  }
+  function closeSheet() { $('sheet').hidden = true; $('scrim').hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  $('sh-x').onclick = closeSheet; $('scrim').onclick = closeSheet;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
+  var lastY = 0;
+  function onScrollBars(y, max) {
+    if (!$('sheet').hidden) return;
+    if (y < 40 || y >= max - 4) document.body.classList.remove('hide');
+    else if (y > lastY + 12) document.body.classList.add('hide');
+    else if (y < lastY - 12) document.body.classList.remove('hide');
+    lastY = y;
+  }
+
+  $('b-more').onclick = function () {
+    var file = encPath(PATH);
+    var h = '<div class="menu">' +
+      (META.src ? '<a href="' + esc(META.src) + '" target="_blank" rel="noopener">官方原始網址<small>' + (/sec\.gov/.test(META.src) ? 'SEC EDGAR' : '公開資訊觀測站') + '(連到官方網站,不用這台電腦)</small></a>' : '') +
+      '<a href="' + file + '" download>下載這個檔案<small>' + esc(PATH.split('/').pop()) + '</small></a>' +
+      (MODE === 'html' && META.reader ? '<a href="' + file + '" target="_blank" rel="noopener">看原始排版<small>SEC 原檔,字比較小</small></a>' : '') +
+      (navigator.share ? '<button type="button" id="m-share">分享連結</button>' : '') +
+      '<a href="index.html' + (META.co ? '#c=' + encodeURIComponent(META.co.key) : '') + '">' + (META.co ? esc(META.co.name) + ' 的所有文件' : '文件列表') + '</a></div>';
+    openSheet('這份文件', h, function (b) {
+      var s = b.querySelector('#m-share');
+      if (s) s.onclick = function () { navigator.share({ title: META.label, url: location.href }).catch(function () {}); };
+    });
+  };
+
+  /* ── 讀到哪裡:每份文件記位置,首頁的「繼續閱讀」用 ── */
+  var posKey = 'fl.pos:' + PATH, saveT = 0;
+  function savePos(rec) {
+    clearTimeout(saveT);
+    saveT = setTimeout(function () {
+      rec.ts = Date.now();
+      store.set(posKey, rec);
+      var R = store.get('fl.recent', []).filter(function (r) { return r && r.p !== PATH; });
+      R.unshift({ p: PATH, l: META.label, c: META.co ? META.co.key + ' ' + META.co.name : '', pg: rec.pg, n: rec.n, fr: rec.fr, ts: rec.ts });
+      store.set('fl.recent', R.slice(0, 8));
+    }, 400);
+  }
+
+  /* ════════════════ PDF ════════════════ */
+  var P = { doc: null, n: 0, zoom: 1, sizes: [], tops: [], cur: 1, text: [], done: {}, queue: [], busy: false, outline: null };
+  function loadScript(u) { return new Promise(function (ok, no) { var s = document.createElement('script'); s.src = u; s.onload = ok; s.onerror = function () { no(new Error('載入 PDF 閱讀元件失敗')); }; document.head.appendChild(s); }); }
+  function baseW() { return Math.min(document.documentElement.clientWidth - 16, 900); }
+  function pageW() { return Math.round(baseW() * P.zoom); }
+  function layout() {
+    var w = pageW(), box = $('pages');
+    for (var i = 0; i < P.n; i++) {
+      var el = box.children[i], s = P.sizes[i];
+      el.style.width = w + 'px'; el.style.height = Math.round(w * s[1] / s[0]) + 'px';
+    }
+    measure();
+  }
+  function measure() { var box = $('pages'); P.tops = []; for (var i = 0; i < P.n; i++) P.tops.push(box.children[i].offsetTop); }
+  function curPage() {
+    var y = window.scrollY + window.innerHeight * 0.35, lo = 0, hi = P.n - 1;
+    while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (P.tops[mid] <= y) lo = mid; else hi = mid - 1; }
+    return lo + 1;
+  }
+  function paintPos() {
+    $('pos-v').textContent = P.cur + ' / ' + P.n;
+    $('pos-s').textContent = P.zoom === 1 ? '點一下跳頁' : Math.round(P.zoom * 100) + '%';
+  }
+  function goPage(n, frac, flash) {
+    n = Math.max(1, Math.min(P.n, n | 0));
+    var el = $('pages').children[n - 1];
+    window.scrollTo(window.scrollX, el.offsetTop - 60 + (frac || 0) * el.offsetHeight);
+    lastY = window.scrollY; document.body.classList.remove('hide');      // 自己跳的頁,工具列留著
+    if (flash) { el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 1600); }
+    P.cur = n; paintPos(); pump();
+  }
+  // 只畫看得到附近的頁,最多留 12 頁的畫布,長年報也不會吃光手機記憶體
+  function want() {
+    var a = Math.max(1, P.cur - 2), b = Math.min(P.n, P.cur + 3), out = [];
+    for (var i = P.cur; i <= b; i++) out.push(i);
+    for (var j = P.cur - 1; j >= a; j--) out.push(j);
+    return out;
+  }
+  function pump() {
+    if (P.busy) return;
+    var key = P.zoom + ':' + pageW();
+    var next = want().filter(function (i) { return P.done[i] !== key; })[0];
+    if (!next) return trim();
+    P.busy = true;
+    renderPage(next, key).catch(function () {}).then(function () { P.busy = false; pump(); });
+  }
+  function trim() {
+    var keys = Object.keys(P.done).map(Number);
+    if (keys.length <= 12) return;
+    keys.sort(function (a, b) { return Math.abs(b - P.cur) - Math.abs(a - P.cur); });
+    keys.slice(0, keys.length - 12).forEach(function (i) {
+      var c = $('pages').children[i - 1].querySelector('canvas'); if (c) { c.width = c.height = 0; c.remove(); }
+      delete P.done[i];
+    });
+  }
+  function renderPage(i, key) {
+    return P.doc.getPage(i).then(function (page) {
+      var v1 = page.getViewport({ scale: 1 }), el = $('pages').children[i - 1];
+      if (Math.abs(v1.width / v1.height - P.sizes[i - 1][0] / P.sizes[i - 1][1]) > 0.01) {
+        P.sizes[i - 1] = [v1.width, v1.height];
+        var y0 = window.scrollY, before = el.offsetHeight;
+        el.style.height = Math.round(pageW() * v1.height / v1.width) + 'px';
+        if (el.offsetTop < y0) window.scrollTo(window.scrollX, y0 + el.offsetHeight - before);
+        measure();
+      }
+      var w = pageW(), h = Math.round(w * v1.height / v1.width);
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (w * h * dpr * dpr > 14e6) dpr = Math.sqrt(14e6 / (w * h));
+      var vp = page.getViewport({ scale: w / v1.width * dpr });
+      var c = document.createElement('canvas');
+      c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+      return page.render({ canvasContext: c.getContext('2d', { alpha: false }), viewport: vp }).promise.then(function () {
+        var old = el.querySelector('canvas'); if (old) { old.width = old.height = 0; old.remove(); }
+        var no = el.querySelector('.no'); if (no) no.remove();
+        el.appendChild(c); P.done[i] = key;
+      });
+    });
+  }
+  function setZoom(z, keep) {
+    z = Math.max(1, Math.min(4, Math.round(z * 100) / 100));
+    if (z === P.zoom) return;
+    var n = P.cur, el = $('pages').children[n - 1];
+    var frac = keep != null ? keep : Math.max(0, (window.scrollY + 60 - el.offsetTop) / el.offsetHeight);
+    var fx = document.documentElement.scrollWidth > window.innerWidth ? (window.scrollX + window.innerWidth / 2) / document.documentElement.scrollWidth : 0.5;
+    P.zoom = z; layout();
+    window.scrollTo(Math.max(0, fx * document.documentElement.scrollWidth - window.innerWidth / 2), el.offsetTop - 60 + frac * el.offsetHeight);
+    lastY = window.scrollY; document.body.classList.remove('hide');
+    paintPos(); pump(); savePdfPos();
+  }
+  var ZS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
+  function zoomStep(d) {
+    var i = ZS.findIndex(function (z) { return z >= P.zoom - 0.01; });
+    if (d > 0) setZoom(ZS[Math.min(ZS.length - 1, (ZS[i] > P.zoom + 0.01 ? i : i + 1))]);
+    else setZoom(ZS[Math.max(0, (ZS[i] < P.zoom - 0.01 ? i : i - 1))] || 1);
+  }
+  function savePdfPos() {
+    var el = $('pages').children[P.cur - 1];
+    savePos({ pg: P.cur, n: P.n, z: P.zoom, frac: Math.max(0, (window.scrollY + 60 - el.offsetTop) / el.offsetHeight) });
+  }
+
+  function openPdf() {
+    var box = document.createElement('div'); box.id = 'pages'; $('view').appendChild(box);
+    return loadScript(PDFJS + 'build/pdf.min.js').then(function () {
+      var lib = window.pdfjsLib;
+      lib.GlobalWorkerOptions.workerSrc = PDFJS + 'build/pdf.worker.min.js';
+      var task = lib.getDocument({ url: encPath(PATH), cMapUrl: PDFJS + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDFJS + 'standard_fonts/',
+        rangeChunkSize: 262144, disableAutoFetch: true });
+      task.onProgress = function (p) { if (p.total) $('load').style.width = Math.min(100, p.loaded / p.total * 100) + '%'; };
+      return task.promise;
+    }).then(function (doc) {
+      P.doc = doc; P.n = doc.numPages;
+      return doc.getPage(1);
+    }).then(function (p1) {
+      $('load').style.width = '100%'; setTimeout(function () { $('load').style.opacity = 0; }, 400);
+      var v = p1.getViewport({ scale: 1 }), html = '';
+      for (var i = 0; i < P.n; i++) { P.sizes.push([v.width, v.height]); html += '<div class="pg"><span class="no">' + (i + 1) + '</span></div>'; }
+      box.innerHTML = html;
+      var saved = store.get(posKey, null);
+      if (saved && saved.z > 1) P.zoom = saved.z;
+      layout();
+      if (saved && saved.pg > 1) goPage(saved.pg, saved.frac); else { P.cur = 1; paintPos(); pump(); }
+      say('共 ' + P.n + ' 頁' + (saved && saved.pg > 1 ? ',從上次讀到的第 ' + saved.pg + ' 頁繼續' : ''));
+      var raf = 0;
+      window.addEventListener('scroll', function () {
+        if (raf) return;
+        raf = requestAnimationFrame(function () {
+          raf = 0;
+          onScrollBars(window.scrollY, document.documentElement.scrollHeight - window.innerHeight);
+          var c = curPage(); if (c !== P.cur) { P.cur = c; paintPos(); pump(); }
+          savePdfPos();
+        });
+      }, { passive: true });
+      var rz = 0;
+      window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { var n = P.cur; layout(); goPage(n); }, 200); });
+      pinch(box);
+      box.addEventListener('click', function (e) { if (!e.target.closest('a')) document.body.classList.toggle('hide'); });
+      box.addEventListener('dblclick', function (e) { e.preventDefault(); setZoom(P.zoom > 1 ? 1 : 2); });
+      doc_outline();
+    }).catch(function (e) { fail(e); });
+  }
+  // 兩指縮放:手指移動時先用 CSS 放大預覽,放開後依新比例重畫
+  function pinch(box) {
+    var d0 = 0, z0 = 1, s = 1;
+    var dist = function (t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); };
+    box.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) {
+        d0 = dist(e.touches); z0 = P.zoom; s = 1;
+        var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 + window.scrollX, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 + window.scrollY;
+        box.style.transformOrigin = cx + 'px ' + cy + 'px';
+      }
+    }, { passive: true });
+    box.addEventListener('touchmove', function (e) {
+      if (e.touches.length === 2 && d0) { e.preventDefault(); s = Math.max(1 / z0, Math.min(4 / z0, dist(e.touches) / d0)); box.style.transform = 'scale(' + s + ')'; }
+    }, { passive: false });
+    box.addEventListener('touchend', function (e) {
+      if (d0 && e.touches.length < 2) { box.style.transform = ''; d0 = 0; if (Math.abs(s - 1) > 0.04) setZoom(z0 * s); }
+    });
+  }
+
+  /* 目錄:PDF 內建書籤;沒有的話(台股財報、年報多半沒有)提供常用章節快速跳轉 */
+  function doc_outline() {
+    P.doc.getOutline().then(function (o) { P.outline = o || []; }).catch(function () { P.outline = []; });
+  }
+  function flatOutline(items, lv, out) {
+    (items || []).forEach(function (it) { out.push({ t: it.title, dest: it.dest, lv: lv }); flatOutline(it.items, lv + 1, out); });
+    return out;
+  }
+  function destPage(dest) {
+    var d = typeof dest === 'string' ? P.doc.getDestination(dest) : Promise.resolve(dest);
+    return d.then(function (arr) { return arr && arr[0] ? P.doc.getPageIndex(arr[0]).then(function (i) { return i + 1; }) : null; });
+  }
+  function jumpTerms() {
+    var t = META.t, lb = META.label;
+    if (t === '財報' || /財報/.test(lb)) return ['會計師', '資產負債表', '綜合損益表', '權益變動表', '現金流量表', '重要會計項目', '營運部門'];
+    if (t === '年報' || /年報/.test(lb)) return ['致股東報告書', '公司簡介', '公司治理', '募資情形', '營運概況', '財務概況', '財務狀況及財務績效', '風險', '特別記載'];
+    if (/10-K|10-Q|annual|quarterly/i.test(lb)) return ['Risk Factors', "Management's Discussion", 'Balance Sheets', 'Statements of Operations', 'Cash Flows', 'Segment'];
+    return [];
+  }
+  function pageText(i) {
+    if (P.text[i] != null) return Promise.resolve(P.text[i]);
+    return P.doc.getPage(i).then(function (pg) { return pg.getTextContent(); }).then(function (tc) {
+      P.text[i] = tc.items.map(function (x) { return x.str + (x.hasEOL ? '\n' : ''); }).join('');
+      return P.text[i];
+    });
+  }
+  var norm = function (s, latin) { return latin ? s.replace(/\s+/g, ' ').toLowerCase() : s.replace(/\s+/g, ''); };
+  var reEsc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+  var isToc = function (s, terms) { return terms.filter(function (x) { return s.indexOf(norm(x, /[a-z]/i.test(x)).toLowerCase()) >= 0; }).length >= 3; };
+  // 文件自己的目錄頁(「項目 … 頁次」):台股財報的會計師報告與四大報表常是圖片、抽不到文字,只能靠它
+  var tocMap = null;
+  function buildTocMap(terms) {
+    if (tocMap) return Promise.resolve(tocMap);
+    var lim = Math.min(P.n, 8), i = 1;
+    function seek() {
+      if (i > lim) return Promise.resolve(null);
+      var k = i++;
+      return pageText(k).then(function (tx) { var s = norm(tx, false); return /目\S?錄/.test(s) && isToc(s.toLowerCase(), terms) ? { k: k, s: s } : seek(); });
+    }
+    return seek().then(function (toc) {
+      tocMap = { pages: {} };
+      if (!toc) return tocMap;
+      var printed = {};
+      terms.forEach(function (t) {
+        var m = toc.s.match(new RegExp(reEsc(norm(t, false)) + '[^0-9]{0,10}?(\\d{1,3})'));
+        if (m) printed[t] = +m[1];
+      });
+      var self = null, re = /目\S?錄(\d{1,3})/g, m2;
+      while ((m2 = re.exec(toc.s))) self = +m2[1];            // 目錄自己的頁次
+      if (self) return finish(toc.k - self);
+      // 目錄沒列自己(年報常見):拿有文字的章節頁來對印刷頁碼與 PDF 頁的差
+      var cand = Object.keys(printed), off = 0, found = false;
+      function tryOff(ci) {
+        if (found || ci >= Math.min(3, cand.length)) return Promise.resolve();
+        var t = cand[ci], tries = [];
+        for (var o = 0; o <= 14; o++) tries.push(o);
+        return tries.reduce(function (pr, o) {
+          return pr.then(function () {
+            if (found) return;
+            var pg = printed[t] + o;
+            if (pg < 1 || pg > P.n || pg === toc.k) return;
+            return pageText(pg).then(function (tx) { var s = norm(tx, false); if (s.indexOf(norm(t, false)) >= 0 && !isToc(s.toLowerCase(), terms)) { off = o; found = true; } });
+          });
+        }, Promise.resolve()).then(function () { return tryOff(ci + 1); });
+      }
+      return tryOff(0).then(function () { return finish(found ? off : 0); });
+      function finish(o) {
+        Object.keys(printed).forEach(function (t) { var pg = printed[t] + o; if (pg >= 1 && pg <= P.n) tocMap.pages[t] = pg; });
+        return tocMap;
+      }
+    });
+  }
+  // 章節跳轉:先查目錄頁的頁次;查不到再找第一個「出現這個詞、但不像目錄頁」的頁
+  function findSection(term, terms) {
+    return buildTocMap(terms).then(function (map) {
+      if (map.pages[term]) return map.pages[term];
+      var latin = /[a-z]/i.test(term), q = norm(term, latin).toLowerCase(), i = 2;
+      function step() {
+        if (i > P.n) return Promise.resolve(null);
+        var k = i++;
+        return pageText(k).then(function (tx) {
+          var s = norm(tx, latin).toLowerCase();
+          if (s.indexOf(q) < 0) return step();
+          return isToc(s, terms) ? step() : k;
+        });
+      }
+      return step();
+    });
+  }
+  function tocPdf() {
+    var fl = flatOutline(P.outline, 1, []), terms = jumpTerms();
+    var h = '';
+    if (terms.length) h += '<p class="note">快速跳到常用章節(先看文件自己的目錄頁,找不到再搜內文)</p><div class="chips">' + terms.map(function (t) { return '<button type="button" class="chip" data-term="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div>';
+    if (fl.length) h += '<div class="toc">' + fl.map(function (x, k) { return '<a data-k="' + k + '" class="l' + Math.min(3, x.lv) + '">' + esc(x.t) + '</a>'; }).join('') + '</div>';
+    else if (!terms.length) h += '<p class="note">這份 PDF 沒有內建目錄。可以用「搜尋」找關鍵字,或點下方頁碼直接跳頁。</p>';
+    else h += '<p class="note">這份 PDF 沒有內建目錄。</p>';
+    openSheet('目錄', h, function (b) {
+      b.onclick = function (e) {
+        var a = e.target.closest('.toc a'), c = e.target.closest('.chip');
+        if (a) { destPage(fl[+a.dataset.k].dest).then(function (pg) { if (pg) { closeSheet(); goPage(pg, 0, true); } }); }
+        if (c) {
+          c.classList.add('busy'); c.textContent = c.dataset.term + '…';
+          findSection(c.dataset.term, terms).then(function (pg) {
+            c.classList.remove('busy'); c.textContent = c.dataset.term;
+            if (pg) { closeSheet(); goPage(pg, 0, true); say('跳到第 ' + pg + ' 頁'); } else c.classList.add('miss');
+          });
+        }
+      };
+    });
+  }
+  var findTok = 0;
+  function findPdf(q) {
+    var tok = ++findTok, latin = /[a-z]/i.test(q), nq = norm(q, latin).toLowerCase(), res = $('res'), info = $('res-info'), hits = 0, i = 1, blank = 0;
+    if (!nq) { res.innerHTML = ''; info.textContent = ''; return; }
+    res.innerHTML = '';
+    function step() {
+      if (tok !== findTok) return;
+      if (i > P.n) {
+        info.textContent = '找完 ' + P.n + ' 頁,' + (hits ? '共 ' + hits + ' 處' : '沒有找到') +
+          (blank ? ';其中 ' + blank + ' 頁是圖片(例如會計師報告、四大報表),搜不到文字,可以用「目錄」直接跳過去' : '');
+        return;
+      }
+      var k = i++;
+      pageText(k).then(function (tx) {
+        if (tok !== findTok) return;
+        if (!tx.trim()) blank++;
+        var s = norm(tx, latin), low = s.toLowerCase(), at = low.indexOf(nq), m = 0;
+        while (at >= 0 && m < 3 && hits < 300) {
+          var a = Math.max(0, at - 24), b = Math.min(s.length, at + nq.length + 36);
+          res.insertAdjacentHTML('beforeend', '<a data-p="' + k + '"><small>第 ' + k + ' 頁</small><span>' + (a ? '…' : '') + esc(s.slice(a, at)) + '<mark>' + esc(s.slice(at, at + nq.length)) + '</mark>' + esc(s.slice(at + nq.length, b)) + (b < s.length ? '…' : '') + '</span></a>');
+          hits++; m++; at = low.indexOf(nq, at + nq.length);
+        }
+        if (k % 10 === 0 || k === P.n) info.textContent = '已找 ' + k + ' / ' + P.n + ' 頁,' + hits + ' 處';
+        step();
+      }).catch(step);
+    }
+    step();
+  }
+
+  /* ════════════════ HTML(SEC 文件的手機閱讀版)════════════════ */
+  var H = { win: null, doc: null, fs: store.get('fl.fs', 16), marks: [] };
+  function openHtml() {
+    var f = document.createElement('iframe');
+    f.id = 'frame'; f.title = META.label;
+    f.setAttribute('sandbox', 'allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+    f.src = encPath(META.reader || PATH);
+    $('view').appendChild(f);
+    f.onload = function () {
+      $('load').style.width = '100%'; setTimeout(function () { $('load').style.opacity = 0; }, 400);
+      try { H.win = f.contentWindow; H.doc = f.contentDocument; } catch (e) { H.doc = null; }
+      if (!H.doc || !H.doc.body) { $('b-toc').disabled = $('b-find').disabled = true; return; }
+      var st = H.doc.createElement('style');
+      st.textContent = 'body{padding-top:calc(56px + env(safe-area-inset-top))!important}';
+      H.doc.head.appendChild(st);
+      H.doc.body.style.fontSize = H.fs + 'px';
+      var saved = store.get(posKey, null), max = function () { return H.doc.documentElement.scrollHeight - H.win.innerHeight; };
+      if (saved && saved.fr) setTimeout(function () { H.win.scrollTo(0, saved.fr * max()); }, 60);
+      var raf = 0;
+      H.win.addEventListener('scroll', function () {
+        if (raf) return;
+        raf = requestAnimationFrame(function () {
+          raf = 0;
+          var y = H.win.scrollY, m = max(), fr = m > 0 ? y / m : 0;
+          onScrollBars(y, m);
+          $('pos-v').textContent = Math.round(fr * 100) + '%';
+          savePos({ fr: fr });
+        });
+      }, { passive: true });
+      H.doc.addEventListener('click', function (e) { if (!e.target.closest('a')) document.body.classList.toggle('hide'); });
+      $('pos-v').textContent = saved && saved.fr ? Math.round(saved.fr * 100) + '%' : '0%';
+      $('pos-s').textContent = '點一下跳到開頭';
+      if (!H.doc.querySelector('[data-toc]')) $('b-toc').disabled = true;
+    };
+  }
+  function tocHtml() {
+    var els = Array.prototype.slice.call(H.doc.querySelectorAll('[data-toc]'));
+    var h = '<div class="toc">' + els.map(function (el, k) {
+      var t = el.getAttribute('data-toc'), lv = /^PART\b/i.test(t) ? 1 : 2;
+      return '<a data-k="' + k + '" class="l' + lv + '">' + esc(t) + '</a>';
+    }).join('') + '</div>';
+    openSheet('目錄', h, function (b) {
+      b.onclick = function (e) { var a = e.target.closest('a'); if (!a) return; closeSheet(); els[+a.dataset.k].scrollIntoView({ block: 'start' }); };
+    });
+  }
+  function clearMarks() {
+    H.marks.forEach(function (m) { var p = m.parentNode; if (p) { p.replaceChild(H.doc.createTextNode(m.textContent), m); p.normalize(); } });
+    H.marks = [];
+  }
+  function findHtml(q) {
+    clearMarks();
+    var res = $('res'), info = $('res-info');
+    res.innerHTML = ''; if (!q) { info.textContent = ''; return; }
+    var low = q.toLowerCase(), walker = H.doc.createTreeWalker(H.doc.body, NodeFilter.SHOW_TEXT), nodes = [], n;
+    while ((n = walker.nextNode())) if (n.nodeValue.toLowerCase().indexOf(low) >= 0) nodes.push(n);
+    var out = '';
+    nodes.forEach(function (node) {
+      var text = node.nodeValue, lt = text.toLowerCase(), at = lt.indexOf(low), frag = H.doc.createDocumentFragment(), last = 0;
+      while (at >= 0 && H.marks.length < 400) {
+        frag.appendChild(H.doc.createTextNode(text.slice(last, at)));
+        var mk = H.doc.createElement('mark'); mk.textContent = text.slice(at, at + q.length); frag.appendChild(mk); H.marks.push(mk);
+        var a = Math.max(0, at - 30), b = Math.min(text.length, at + q.length + 40);
+        out += '<a data-m="' + (H.marks.length - 1) + '"><span>' + (a ? '…' : '') + esc(text.slice(a, at)) + '<mark>' + esc(text.slice(at, at + q.length)) + '</mark>' + esc(text.slice(at + q.length, b)) + (b < text.length ? '…' : '') + '</span></a>';
+        last = at + q.length; at = lt.indexOf(low, last);
+      }
+      frag.appendChild(H.doc.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+    res.innerHTML = out;
+    info.textContent = H.marks.length ? '共 ' + H.marks.length + ' 處' + (H.marks.length >= 400 ? '(只列前 400 處)' : '') : '沒有找到';
+  }
+
+  /* ── 工具列按鈕 ── */
+  var lastQ = '';
+  $('b-find').onclick = function () {
+    openSheet('搜尋', '<form class="find" id="ff"><input id="fq" type="search" enterkeyhint="search" placeholder="' + (MODE === 'pdf' ? '關鍵字,例如 營業收入、毛利率' : 'Keyword, e.g. revenue, guidance') + '" value="' + esc(lastQ) + '" aria-label="搜尋文件內容"><button>找</button></form>' +
+      '<p class="note" id="res-info">' + (MODE === 'pdf' ? '中文會忽略空白;長的年報第一次搜尋要把全文載入,會比較久。' : '') + '</p><div class="res" id="res"></div>', function (b) {
+      var inp = b.querySelector('#fq');
+      b.querySelector('#ff').onsubmit = function (e) { e.preventDefault(); lastQ = inp.value.trim(); (MODE === 'pdf' ? findPdf : findHtml)(lastQ); inp.blur(); };
+      b.querySelector('#res').onclick = function (e) {
+        var a = e.target.closest('a'); if (!a) return;
+        closeSheet();
+        if (a.dataset.p) goPage(+a.dataset.p, 0, true);
+        else { H.marks.forEach(function (m) { m.className = ''; }); var m = H.marks[+a.dataset.m]; if (m) { m.className = 'on'; m.scrollIntoView({ block: 'center' }); } }
+      };
+      if (lastQ && $('res').innerHTML === '') (MODE === 'pdf' ? findPdf : findHtml)(lastQ);
+      inp.focus();
+    });
+  };
+  $('b-toc').onclick = function () { if (MODE === 'pdf') { if (P.doc) tocPdf(); } else if (H.doc) tocHtml(); };
+  $('b-pos').onclick = function () {
+    if (MODE === 'html') { if (H.win) H.win.scrollTo(0, 0); return; }
+    if (!P.doc) return;
+    openSheet('跳到第幾頁', '<form class="go" id="gf"><input id="gn" type="number" inputmode="numeric" min="1" max="' + P.n + '" value="' + P.cur + '" aria-label="頁碼"><span>/ ' + P.n + ' 頁</span><button>前往</button></form>' +
+      '<p class="note">也可以兩指縮放、點兩下放大;點頁面空白處隱藏工具列。</p>', function (b) {
+      var inp = b.querySelector('#gn');
+      b.querySelector('#gf').onsubmit = function (e) { e.preventDefault(); closeSheet(); goPage(+inp.value || 1); };
+      inp.focus(); inp.select();
+    });
+  };
+  $('b-in').onclick = function () {
+    if (MODE === 'pdf') zoomStep(1);
+    else if (H.doc) { H.fs = Math.min(24, H.fs + 1); H.doc.body.style.fontSize = H.fs + 'px'; store.set('fl.fs', H.fs); say('字級 ' + H.fs); }
+  };
+  $('b-out').onclick = function () {
+    if (MODE === 'pdf') zoomStep(-1);
+    else if (H.doc) { H.fs = Math.max(13, H.fs - 1); H.doc.body.style.fontSize = H.fs + 'px'; store.set('fl.fs', H.fs); say('字級 ' + H.fs); }
+  };
+  if (MODE === 'html') { $('b-in').setAttribute('aria-label', '放大字'); $('b-out').setAttribute('aria-label', '縮小字'); }
+
+  function fail(e) {
+    $('view').innerHTML = '<div class="err"><h1>這份文件打不開</h1><p>' + esc(e && e.message || e) + '</p>' +
+      (META.src ? '<p><a href="' + esc(META.src) + '" target="_blank" rel="noopener">改開官方原始網址</a>(SEC 或公開資訊觀測站,不需要這台電腦)</p>' : '') +
+      '<p><a href="index.html">回文件列表</a></p></div>';
+    $('bot').style.display = 'none';
+  }
+
+  /* ── 開始:先讀清單拿到公司、類別、官方網址與閱讀版路徑 ── */
+  if (!PATH || /(^|\/)\.\.(\/|$)/.test(PATH)) { fail('網址裡沒有指定文件。'); return; }
+  fetch('index.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (idx) {
+    if (idx) idx.markets.forEach(function (m) {
+      m.companies.forEach(function (c) {
+        c.docs.forEach(function (d) {
+          if (d.path === PATH) { META.co = c; META.t = d.t; META.src = d.src; META.reader = d.reader || null; META.label = d.label.replace(/^\d{4}-\d{2}-\d{2}\s+/, ''); META.pub = d.pub; }
+        });
+      });
+    });
+    $('t-co').textContent = META.co ? META.co.key + ' ' + META.co.name + (META.pub ? ' · ' + META.pub : '') : '';
+    $('t-doc').textContent = META.label;
+    document.title = (META.co ? META.co.name + ' ' : '') + META.label;
+    if (MODE === 'pdf') openPdf(); else openHtml();
+  });
+})();
+</script>
+</body>
+</html>
