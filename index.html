@@ -84,6 +84,13 @@ details.more summary{cursor:pointer;color:var(--accent-ink);font-size:14px;paddi
 details.more summary::-webkit-details-marker{display:none}
 details.more summary::before{content:"+ "}
 details.more[open] summary::before{content:"\2212  "}
+details.yrs{margin:2px 0 6px}
+details.yrs summary{cursor:pointer;color:var(--accent-ink);font-size:13.5px;padding:10px 2px;list-style:none;border-bottom:1px solid var(--rule)}
+details.yrs summary::-webkit-details-marker{display:none}
+details.yrs summary::before{content:"+ "}
+details.yrs[open] summary::before{content:"\2212  "}
+.yr{font-size:12.5px;font-weight:600;color:var(--muted);padding:12px 2px 2px}
+.fmt.ext{color:var(--accent-ink);border-color:var(--accent-ink)}
 .links li{margin:6px 0;font-size:14px;line-height:1.6}
 .links a{color:var(--accent-ink)}
 .links{padding-left:18px}
@@ -117,7 +124,10 @@ mark{background:var(--sel);color:inherit;border-radius:2px}
   };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var encPath = function (p) { return p.split('/').map(encodeURIComponent).join('/'); };
-  var readerHref = function (d) { return 'reader.html?f=' + encodeURIComponent(d.path); };
+  // 本機(研究庫伺服器 /filings/ 或直接開檔)每份都有;公開站放不下的舊檔(site === false)改連官方網址
+  var LOCAL = location.pathname.indexOf('/filings/') === 0 || location.protocol === 'file:';
+  var remote = function (d) { return d.site === false && !LOCAL; };
+  var readerHref = function (d) { return remote(d) ? (d.src || '#') : 'reader.html?f=' + encodeURIComponent(d.path); };
   var mb = function (b) { return b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB'; };
   var today = new Date(), iso = function (d) { return d.toISOString().slice(0, 10); };
   var daysAgo = function (s) { var t = Date.parse(s); return isNaN(t) ? 1e9 : (today - t) / 864e5; };
@@ -141,9 +151,10 @@ mark{background:var(--sel);color:inherit;border-radius:2px}
     var when = d.pub ? (d.t === '財報' || d.t === '年報' ? d.pub + ' 公布' : d.pub) : (d.date || '');
     var sub = (co ? esc(co.key) + ' · ' : '') + esc(when) + ' · ' + mb(d.bytes || 0);
     var fresh = daysAgo(d.pub) <= 14 && !d.old;
-    return '<a class="row" href="' + readerHref(d) + '"><div class="body"><div class="nm">' + (co ? esc(co.name) + ' ' : '') + esc(nice(d)) + '</div>' +
+    var ext = remote(d);
+    return '<a class="row" href="' + esc(readerHref(d)) + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '><div class="body"><div class="nm">' + (co ? esc(co.name) + ' ' : '') + esc(nice(d)) + '</div>' +
       '<div class="sub">' + sub + (fresh ? ' · <span style="color:var(--warn);font-weight:500">新</span>' : '') + '</div></div>' +
-      '<span class="fmt">' + (d.fmt === 'pdf' ? 'PDF' : 'HTML') + '</span></a>';
+      (ext ? '<span class="fmt ext" title="公開站放不下,開官方網址">官方</span>' : '<span class="fmt">' + (d.fmt === 'pdf' ? 'PDF' : 'HTML') + '</span>') + '</a>';
   }
 
   function resumeHTML() {
@@ -192,7 +203,7 @@ mark{background:var(--sel);color:inherit;border-radius:2px}
       '<h2 class="sec">' + esc(market) + ' · ' + cs.length + ' 家公司</h2><div class="list">' + (cs.map(coRow).join('') || '<p class="empty">沒有資料。</p>') + '</div>' +
       otherHTML() +
       '<p class="foot">來源:台股為公開資訊觀測站(財報、股東會年報、法說會簡報);美股為 SEC EDGAR(10-K、10-Q、財報 8-K 附件、公開說明書、6-K)。' +
-      '檔案是官方原檔;美股另有手機閱讀版,只調整字級與表格版面,文字不動。每天 06:30、21:30 自動補新檔。</p>';
+      '收錄近 10 年(上市不到 10 年的公司從第一份開始)。檔案是官方原檔;美股另有手機閱讀版,只調整字級與表格版面,文字不動。每天 06:30、21:30 自動補新檔。</p>';
   }
 
   function companyHTML(key) {
@@ -203,12 +214,23 @@ mark{background:var(--sel);color:inherit;border-radius:2px}
     c.docs.forEach(function (d) { if (d.old) { olds.push(d); return; } var g = tagOf(d.t); (groups[g] = groups[g] || []).push(d); });
     var order = (ORDER[m] || []).concat(Object.keys(groups).filter(function (g) { return (ORDER[m] || []).indexOf(g) < 0; }));
     var byPub = function (a, b) { return (b.pub || b.date || '').localeCompare(a.pub || a.date || '') || b.path.localeCompare(a.path); };
+    // 10 年的文件很多:每類先列最新 SHOW 份,更早的依年份收合
+    var SHOW = 6, yearOf = function (d) { return String(d.date || d.pub || '').slice(0, 4) || '其他'; };
     var body = order.filter(function (g) { return groups[g]; }).map(function (g) {
-      return '<h2 class="sec">' + esc(GNAME[g] || g) + '</h2><div class="list">' + groups[g].sort(byPub).map(function (d) { return docRow(d); }).join('') + '</div>';
+      var ds = groups[g].sort(byPub), top = ds.slice(0, SHOW), rest = ds.slice(SHOW), more = '';
+      if (rest.length) {
+        var yrs = [], by = {};
+        rest.forEach(function (d) { var y = yearOf(d); if (!by[y]) { by[y] = []; yrs.push(y); } by[y].push(d); });
+        more = '<details class="yrs"><summary>更早的 ' + rest.length + ' 份(' + esc(yrs[yrs.length - 1]) + '–' + esc(yrs[0]) + ')</summary>' +
+          yrs.map(function (y) { return '<div class="yr">' + esc(y) + '</div>' + by[y].map(function (d) { return docRow(d); }).join(''); }).join('') + '</details>';
+      }
+      return '<h2 class="sec">' + esc(GNAME[g] || g) + '(' + ds.length + ')</h2><div class="list">' + top.map(function (d) { return docRow(d); }).join('') + more + '</div>';
     }).join('');
     var links = (c.ir ? '<a href="' + esc(c.ir) + '" target="_blank" rel="noopener">公司投資人網站</a>' : '') +
       (c.links || []).map(function (l) { return '<a href="' + esc(l[1]) + '" target="_blank" rel="noopener">' + esc(l[0]) + '</a>'; }).join('');
     var note = c.no_er ? '<p class="co-note">這家公司近一年沒有把財報新聞稿送 SEC,財報信與簡報在公司投資人網站。</p>' : '';
+    if (c.since) note += '<p class="co-note">SEC 申報從 ' + esc(c.since) + ' 算起(之前是借殼的 SPAC 空殼公司)。</p>';
+    if (!LOCAL && c.docs.some(function (d) { return d.site === false; })) note += '<p class="co-note">公開文件站容量有限,較舊的文件標「官方」,點了會開公開資訊觀測站或 SEC 的原始網址。</p>';
     if (c.error) note += '<p class="co-note">上次抓取有問題:' + esc(c.error) + '</p>';
     var old = olds.length ? '<details class="more"><summary>較早下載的檔(' + olds.length + ')</summary><div class="list">' + olds.sort(byPub).map(function (d) { return docRow(d); }).join('') + '</div></details>' : '';
     return '<button class="back" data-go="home">‹ 全部公司</button><div class="co-head"><h2>' + esc(c.name) + '<span class="code">' + esc(c.key) + '</span></h2>' +
