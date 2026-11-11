@@ -208,9 +208,19 @@ body.hide .bar.bot{transform:translateY(100%)}
     measure();
   }
   function measure() { var box = $('pages'); P.tops = []; for (var i = 0; i < P.n; i++) P.tops.push(box.children[i].offsetTop); }
+  // 目前的頁 = 工具列下面最上面那一頁;那一頁只剩一小截(不到可見高度的四成)時算下一頁
+  // (原本取畫面 35% 高度那一頁:橫式投影片在手機上很矮,跳到第 4 頁會顯示 5 / 12)
+  // 捲到底:手機上橫式投影片很矮,最後幾頁永遠捲不到工具列下 → 到底就是最後一頁;
+  // 但剛用目錄 / 跳頁跳到倒數幾頁、捲動被底部擋住時,照跳的那一頁(跳第 11 頁不寫 12)
   function curPage() {
-    var y = window.scrollY + window.innerHeight * 0.35, lo = 0, hi = P.n - 1;
+    var de = document.documentElement;
+    if (P.jump && Math.abs(window.scrollY - P.jump.y) < 2) return P.jump.n;
+    P.jump = null;
+    if (window.scrollY > 0 && window.scrollY + window.innerHeight >= de.scrollHeight - 4) return P.n;
+    var y = window.scrollY + 60, lo = 0, hi = P.n - 1;
     while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (P.tops[mid] <= y) lo = mid; else hi = mid - 1; }
+    var el = $('pages').children[lo], h = el ? el.offsetHeight : 0;
+    if (lo < P.n - 1 && h && P.tops[lo] + h - y < 0.4 * Math.min(h, window.innerHeight - 60)) lo++;
     return lo + 1;
   }
   function paintPos() {
@@ -222,6 +232,7 @@ body.hide .bar.bot{transform:translateY(100%)}
     var el = $('pages').children[n - 1];
     window.scrollTo(window.scrollX, el.offsetTop - 60 + (frac || 0) * el.offsetHeight);
     lastY = window.scrollY; document.body.classList.remove('hide');      // 自己跳的頁,工具列留著
+    P.jump = { n: n, y: window.scrollY };
     if (flash) { el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 1600); }
     P.cur = n; paintPos(); pump();
   }
@@ -442,14 +453,39 @@ body.hide .bar.bot{transform:translateY(100%)}
       return step();
     });
   }
+  // 法說會簡報的書籤常是「投影片 0 … 投影片 11」:改用那一頁字最大、最上面的那行當標題,右邊標第幾頁
+  var genericOutline = function (fl) { return fl.length > 0 && fl.every(function (x) { return /^\s*(投影片|slide)\s*\d+\s*$/i.test(String(x.t || '')); }); };
+  P.heads = {};
+  function pageHead(pg) {
+    if (P.heads[pg] !== undefined) return Promise.resolve(P.heads[pg]);
+    return P.doc.getPage(pg).then(function (page) { return page.getTextContent(); }).then(function (tc) {
+      var it = tc.items.filter(function (x) { return x.str && x.str.trim() && x.transform; }), mx = 0;
+      it.forEach(function (x) { var s = Math.hypot(x.transform[2], x.transform[3]); x._s = s; if (s > mx) mx = s; });
+      var big = it.filter(function (x) { return x._s >= mx * 0.85; });
+      if (!big.length) return (P.heads[pg] = '');
+      var top = Math.max.apply(null, big.map(function (x) { return x.transform[5]; }));        // PDF 座標 y 往上:最大 = 最上面
+      var line = big.filter(function (x) { return Math.abs(x.transform[5] - top) < mx * 0.6; }).sort(function (a, b) { return a.transform[4] - b.transform[4]; });
+      var s = line.map(function (x) { return x.str; }).join('').replace(/\s+/g, ' ').trim();
+      return (P.heads[pg] = s.length > 48 ? s.slice(0, 47) + '…' : s);
+    }).catch(function () { return (P.heads[pg] = ''); });
+  }
   function tocPdf() {
-    var fl = flatOutline(P.outline, 1, []), terms = jumpTerms();
+    var fl = flatOutline(P.outline, 1, []), terms = jumpTerms(), gen = genericOutline(fl);
     var h = '';
     if (terms.length) h += '<p class="note">快速跳到常用章節(先看文件自己的目錄頁,找不到再搜內文)</p><div class="chips">' + terms.map(function (t) { return '<button type="button" class="chip" data-term="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div>';
-    if (fl.length) h += '<div class="toc">' + fl.map(function (x, k) { return '<a data-k="' + k + '" class="l' + Math.min(3, x.lv) + '">' + esc(x.t) + '</a>'; }).join('') + '</div>';
+    if (fl.length) h += (gen ? '<p class="note">這份簡報的書籤只有編號,標題取自每頁最上面的大字</p>' : '') +
+      '<div class="toc">' + fl.map(function (x, k) { return '<a data-k="' + k + '" class="l' + Math.min(3, x.lv) + '">' + (gen ? '<span class="p"></span><span class="t">' + esc(x.t) + '</span>' : esc(x.t)) + '</a>'; }).join('') + '</div>';
     else if (!terms.length) h += '<p class="note">這份 PDF 沒有內建目錄。可以用「搜尋」找關鍵字,或點下方頁碼直接跳頁。</p>';
     else h += '<p class="note">這份 PDF 沒有內建目錄。</p>';
     openSheet('目錄', h, function (b) {
+      if (gen) fl.slice(0, 120).forEach(function (x, k) {       // 逐項補上頁碼與標題(一份簡報幾十頁,取字很快)
+        destPage(x.dest).then(function (pg) {
+          if (!pg) return;
+          var a = b.querySelector('.toc a[data-k="' + k + '"]'); if (!a) return;
+          a.querySelector('.p').textContent = '第 ' + pg + ' 頁';
+          return pageHead(pg).then(function (t) { if (t) a.querySelector('.t').textContent = t; });
+        }).catch(function () {});
+      });
       b.onclick = function (e) {
         var a = e.target.closest('.toc a'), c = e.target.closest('.chip');
         if (a) { destPage(fl[+a.dataset.k].dest).then(function (pg) { if (pg) { closeSheet(); goPage(pg, 0, true); } }); }
